@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <link rel="stylesheet" href="popup.css">
+  </head>
+  <body>
+    <div>
+      <input type="checkbox" id="enabled_item" name="enabled_item">
+      <label for="enabled_item">Show on Item page</label>
+    </div>
+    <div>
+      <input type="checkbox" id="enabled_wholesale" name="enabled_wholesale">
+      <label for="enabled_wholesale">Show on Search page</label>
+    </div>
+    <div>
+      <label for="wholesale_popup_timeout">Popup timeout (ms):</label>
+      <input type="number" min="100" max="5000" step="100" id="wholesale_popup_timeout" name="wholesale_popup_timeout">
+    </div>
+    <div>
+      <input type="checkbox" id="show_total_cost" name="show_total_cost">
+      <label for="show_total_cost">Show total cost (product + delivery)</label>
+    </div>
+    <div>
+      <input type="checkbox" id="debug_logging" name="debug_logging">
+      <label for="debug_logging">Enable debug logging</label>
+    </div>
+    <div>
+      <button id="restore_defaults">Restore defaults</button>
+    </div>
+    <script src="popup.js"></script>
+  </body>
+</html>

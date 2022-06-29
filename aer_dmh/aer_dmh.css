@@ -1,0 +1,102 @@
+#aer_dmh_item_div{
+  margin: 10px 0px;
+}
+
+#aer_dmh_item_table{
+  border-collapse: collapse;
+  border: 2px solid red;
+  white-space: nowrap;
+}
+
+#aer_dmh_item_table > tbody > tr > td{
+  padding: 5px 10px;
+  font-size: 12px;
+}
+
+.aer_dmh_item_tr:nth-child(even),
+.aer_dmh_wholesale_tr:nth-child(even)
+{
+  background: #F1F1F1;
+}
+
+.aer_dmh_item_td_service{
+  white-space: normal;
+}
+
+.aer_dmh_item_td_service,
+.aer_dmh_item_td_price,
+.aer_dmh_item_td_totalCost{
+  font-size: 14px;
+}
+
+.aer_dmh_wholesale_price{
+  position: relative;
+}
+
+.aer_dmh_wholesale_icon{
+  position: absolute;
+  margin-left: calc(100% - 24px - 10px);
+  width: 24px;
+}
+
+#aer_dmh_wholesale_div{
+  position:absolute;
+  padding-top: 4px;
+  padding-left: 4px;
+  padding-right: 4px;
+  padding-bottom: 10px;
+  transform: translate(-100%, -100%);
+}
+
+#aer_dmh_wholesale_inner_div{
+  width: 250px;
+  max-height: 200px;
+  border: 1px solid black;
+  padding: 5px;
+  background: white;
+  font-size: 12px;
+  overflow:auto;
+}
+
+#aer_dmh_wholesale_ship_from{
+  font-size: 12px
+}
+
+#aer_dmh_wholesale_table{
+  border-collapse: collapse;
+  border: 1px solid red;
+  word-wrap:break-word;
+}
+
+#aer_dmh_wholesale_table > tbody > tr > td{
+  padding: 2px 4px;
+}
+
+.aer_dmh_wholesale_td_groupName{
+  font-size: 10px;
+}
+
+.aer_dmh_wholesale_td_service{
+  min-width:100px;
+}
+
+.aer_dmh_wholesale_td_price,
+.aer_dmh_wholesale_td_totalCost{
+  white-space: nowrap;
+}
+
+#aer_dmh_wholesale_loading_icon{
+  margin-left:50%;
+  transform: translate(-50%, 0px);
+}
+
+.aer_dmh_wholesale_hidden{
+  display: none;
+}
+
+.aer_dmh_wholesale_no_data{
+  font-size: 14px;
+  color:red;
+  width: 236px;
+  text-align:center;
+}

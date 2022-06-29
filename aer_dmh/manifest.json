@@ -1,0 +1,57 @@
+{
+  "manifest_version": 3,
+  "name": "AER Delivery Method Helper",
+  "description": "Show all available delivery methods on AliExpress Russia website",
+  "version": "1.0",
+  "author": "Arseniy Virachev aka Trigger239",
+  "action": {
+    "default_title": "Click to configure",
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "images/icon16.png",
+      "32": "images/icon32.png",
+      "48": "images/icon48.png",
+      "128": "images/icon128.png"
+    }
+  },
+  "permissions": [
+    "activeTab",
+    "storage"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["*://*.aliexpress.ru/item/*"],
+      "exclude_matches": ["*://m.aliexpress.ru/item/*"],
+      "run_at": "document_start",
+      "js": ["item_inject.js"],
+      "css": ["aer_dmh.css"]
+    },
+    {
+      "matches": ["*://*.aliexpress.ru/wholesale*"],
+      "exclude_matches": ["*://m.aliexpress.ru/wholesale*"],
+      "run_at": "document_start",
+      "js": ["wholesale_inject.js"],
+      "css": ["aer_dmh.css"]
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "item_page_script.js",
+        "wholesale_page_script.js",
+        "images/shipment-question.png",
+        "images/loading.svg"
+      ],
+      "matches": ["<all_urls>"]
+    }
+  ],
+  "icons": {
+    "16": "images/icon16.png",
+    "32": "images/icon32.png",
+    "48": "images/icon48.png",
+    "128": "images/icon128.png"
+  }
+}

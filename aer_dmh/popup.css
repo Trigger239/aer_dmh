@@ -1,0 +1,22 @@
+body{
+  width: 200px;
+}
+
+div{
+  margin: 10px 5px;
+  display: table;
+}
+
+label{
+  max-width: 150px;
+  display: table-cell;
+}
+
+input{
+  display: table-cell;
+}
+
+input[type=number]{
+  margin-left: 5px;
+  width: 50px;
+}
