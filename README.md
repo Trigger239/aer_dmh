@@ -1,14 +1,13 @@
 ﻿# AliExpress Russia Delivery Method Helper
 
-![icon]{https://raw.githubusercontent.com/Trigger239/aer_dmh/main/assets/images/icon128.png}
-
+![icon](https://raw.githubusercontent.com/Trigger239/aer_dmh/master/assets/images/icon128.png)
 AER_DMH - это расширение для браузера Chrome, предназначенное для облегчения поиска наиболее выгодных предложений на AliExpress с учётом способа и стоимости доставки.
 
 ## Зачем это нужно?
 
 С некоторых пор у торговой площадки AliExpress появилось российское подразделение AliExpress Russia (AER), в результате чего был полностью переработан сайт в RU-зоне (https://aliexpress.ru). Одним из самых неприятных (на мой взгляд) нововведений стало то, что на странице товара больше не отображается список всех доступных способов доставки с их стоимостью. Вот вся информация, которая видна покупателю:
 
-![delivery_methods_original](https://raw.githubusercontent.com/Trigger239/aer_dmh/main/assets/images/delivery_methods_original.png)
+![delivery_methods_original](https://raw.githubusercontent.com/Trigger239/aer_dmh/master/assets/images/delivery_methods_original.png)
 
 Мало того, что видны только самые дешёвые (в данном случае - бесплатные) способы доставки, так ещё и не понятно, что именно это за способы! А бесплатными часто бывают, например, Aliexpress Saver Shipping или Aliexpress Standard Shipping. При этом между ними огромная разница. Первый не имеет полноценного отслеживания и идёт обычно гораздо дольше второго. 
 
@@ -39,7 +38,7 @@ AER_DMH - это расширение для браузера Chrome, предн
 
 На страницах товаров (`https://aliexpress.ru/item*`) расширение добавляет таблицу следующего вида:
 
-![delivery_methods_new_item](https://raw.githubusercontent.com/Trigger239/aer_dmh/main/assets/images/delivery_methods_new_item.png)
+![delivery_methods_new_item](https://raw.githubusercontent.com/Trigger239/aer_dmh/master/assets/images/delivery_methods_new_item.png)
 
 * Первый столбец - тип доставки(обычная доставка или через пункты выдачи);
 * Второй столбец - название службы (способа) доставки;
@@ -49,27 +48,27 @@ AER_DMH - это расширение для браузера Chrome, предн
 
 На странице поиска (`https://aliexpress.ru/wholesale*`) у каждого товара добавляется кнопка:
 
-![wholesale_button](https://raw.githubusercontent.com/Trigger239/aer_dmh/main/assets/images/wholesale_button.png)
+![wholesale_button](https://raw.githubusercontent.com/Trigger239/aer_dmh/master/assets/images/wholesale_button.png)
 
 При нажатии на неё появляется окно со значком загрузки. Через некоторое время в этом окне отображаются доступные способы доставки (чтобы просмотреть всю доступную информацию, используйте полосы прокрутки):
 
-![delivery_methods_new_wholesale](https://raw.githubusercontent.com/Trigger239/aer_dmh/main/assets/images/delivery_methods_new_wholesale.png)
+![delivery_methods_new_wholesale](https://raw.githubusercontent.com/Trigger239/aer_dmh/master/assets/images/delivery_methods_new_wholesale.png)
 
 Формат представления способов доставки такой же, как на странице товара, с тем лишь отличием, что дата доставки не отображается для экономии места. Стоимость доставки, а также суммарная стоимость рассчитывается в предположении, что покупается одна единица товара. Над таблицей указано, из какой страны производится отправка. __Обратите внимание:__ здесь показываются только способы доставки из какой-то одной страны, выбранной по умолчанию! Может быть доступна доставка и из других стран, но об этом можно узнать, только зайдя на страницу товара.
 
 Расширение имеет ряд настроек, доступ к которым можно получить, нажав "Расширения" справа от адресной строки браузера и затем кликнув по расширению "AER Delivery Method Helper":
 
-![open_settings](https://raw.githubusercontent.com/Trigger239/aer_dmh/main/assets/images/open_settings.png)
+![open_settings](https://raw.githubusercontent.com/Trigger239/aer_dmh/master/assets/images/open_settings.png)
 
 Альтернативно, можно _закрепить_ расширение, нажав соответствующую кнопку справа от его названия:
 
-![pin_extension](https://raw.githubusercontent.com/Trigger239/aer_dmh/main/assets/images/pin_extension.png)
+![pin_extension](https://raw.githubusercontent.com/Trigger239/aer_dmh/master/assets/images/pin_extension.png)
 
 После этого открыть настройки можно будет, кликнув по иконке расширения.
 
 Окно настроек выглядит следующим образом:
 
-![settings](https://raw.githubusercontent.com/Trigger239/aer_dmh/main/assets/images/settings.png)
+![settings](https://raw.githubusercontent.com/Trigger239/aer_dmh/master/assets/images/settings.png)
 
 * "Show on Item page" - определяет, отображать ли способы доставки на страницах товаров;
 * "Show on Search page" - определяет, отображать ли способы доставки на странице поиска;
@@ -84,4 +83,4 @@ AER_DMH - это расширение для браузера Chrome, предн
 
 Очень желательно предоставить как можно более подробную информацию, в том числе, лог ошибок расширения, который можно найти на странице управления расширениями (chrome://extensions) (см. рисунок ниже) и в "Инструментах разработчика" (нажать F12 на той странице, где вы попытались использовать расширение, перейти во вкладку "Console" - ошибки там показаны красным цветом). Идеальным вариантом будет включить "Debug logging" в настройках расширения, затем заново воспроизвести ошибку и предоставить полный лог из консоли.
 
-![errors](https://raw.githubusercontent.com/Trigger239/aer_dmh/main/assets/images/errors.png)
+![errors](https://raw.githubusercontent.com/Trigger239/aer_dmh/master/assets/images/errors.png)
