@@ -2,7 +2,7 @@
   "manifest_version": 2,
   "name": "AER Delivery Method Helper",
   "description": "Show all available delivery methods on AliExpress Russia website",
-  "version": "1.0",
+  "version": "1.1",
   "author": "Arseniy Virachev aka Trigger239",
   "browser_specific_settings": {
     "gecko": {
