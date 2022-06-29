@@ -8,14 +8,16 @@ let default_settings = {
   debug_logging: false,
 };
 
-function restore_default_settings(){
-  return chrome.storage.sync.set(default_settings).then(function(){
+function restore_default_settings(cb){
+  chrome.storage.sync.set(default_settings, function(){
     debug_log("Default settings saved in storage");
+    if(cb)
+      cb();
   });
 }
 
 chrome.runtime.onInstalled.addListener(() => {
-  chrome.storage.sync.get().then((data) => {
+  chrome.storage.sync.get((data) => {
     let wrong_or_missing_values = {};
     for(let [key, val] of Object.entries(data)){
       if(default_settings.hasOwnProperty(key)){
@@ -36,12 +38,12 @@ chrome.runtime.onInstalled.addListener(() => {
       }
     }
     chrome.storage.sync.set(wrong_or_missing_values);
-  })
+  });
 });
 
 chrome.runtime.onMessage.addListener(function(request, sender, sendResponse){
   if(request.type === "restore_defaults"){
-    restore_default_settings().then(function(){
+    restore_default_settings(function(){
       sendResponse();
     });
     return true;

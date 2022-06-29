@@ -26,7 +26,7 @@
 .aer_dmh_item_td_service,
 .aer_dmh_item_td_price,
 .aer_dmh_item_td_totalCost{
-  font-size: 14px;
+  font-size: 14px !important;
 }
 
 .aer_dmh_wholesale_price{

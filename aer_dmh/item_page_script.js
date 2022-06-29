@@ -3,8 +3,17 @@
   let settings;
   let methods = [];
 
-  document.addEventListener("aer_dmh_settings_changed", (e) => {
-    let changes = e.detail.changes;
+  window.addEventListener("message", (e) => {
+    if(e.source === window && e.data && e.data.type){
+      if(e.data.type === "aer_dmh_item_injected")
+        on_injected(e.data.detail);
+      else if(e.data.type === "aer_dmh_settings_changed")
+        on_settings_changed(e.data.detail);
+    }
+  });
+
+  function on_settings_changed(data){
+    let changes = data.changes;
     for(let [key, {oldValue, newValue}] of Object.entries(changes)){
       settings[key] = newValue;
       debug_log("Setting '" + key + "' changed: " + oldValue + " -> " + newValue);
@@ -20,10 +29,10 @@
         show_delivery_methods(methods);
       }
     }
-  });
+  }
 
-  document.addEventListener("aer_dmh_item_injected", (e) => {
-    settings = e.detail.settings;
+  function on_injected(data){
+    settings = data.settings;
 
     if(typeof fetch_old === "undefined"){
       var aer_dmh_fetch_old = fetch;
@@ -45,7 +54,7 @@
         resolve(resp);
       });
     }
-  });
+  }
 
   function create_dom_elements(){
     if(!document.getElementById("aer_dmh_item_div")){
@@ -153,6 +162,23 @@
     }
   }
 
+  function set_inner_HTML(el, html_str){
+    const parser = new DOMParser();
+    const parsed = parser.parseFromString(html_str, "text/html");
+    const tags = parsed.getElementsByTagName("body");
+
+    el.innerHTML = "";
+
+    for (const tag of tags) {
+      el.appendChild(tag);
+    }
+  }
+
+  function remove_children(parent){
+    while(parent.firstChild)
+      parent.removeChild(parent.lastChild);
+  }
+
   function show_delivery_methods(methods){
     if(!settings.enabled_item)
       return;
@@ -160,27 +186,54 @@
       return;
     if(!(methods instanceof Array) || methods.length === 0)
       return;
+
     let table = document.getElementById("aer_dmh_item_table");
-    let tbody = "<tody>";
+    if(!table.tBodies[0])
+      table.createTBody();
+    let tbody = table.tBodies[0];
+    remove_children(tbody);
+
     methods.forEach((m) => {
-      let row = '<tr class="aer_dmh_item_tr">';
-      row += '<td class="aer_dmh_item_td_groupName">' + m.groupName + "</td>";
-      row += '<td class="aer_dmh_item_td_service">' + m.service + "</td>";
-      row += '<td class="aer_dmh_item_td_date">' + m.dateString + "</td>";
+      let row = document.createElement("tr");
+      row.className = "aer_dmh_item_tr";
+
+      let groupName = document.createElement("td");
+      groupName.className = "aer_dmh_item_td_groupName";
+      groupName.textContent = String(m.groupName).replace("\u00A0"," ");
+      row.appendChild(groupName);
+
+      let service = document.createElement("td");
+      service.className = "aer_dmh_item_td_service";
+      service.textContent = String(m.service).replace("\u00A0"," ");
+      row.appendChild(service);
+
+      let date = document.createElement("td");
+      date.className = "aer_dmh_item_td_date";
+      date.textContent = String(m.dateString).replace("\u00A0"," ");
+      row.appendChild(date);
+
+      let price = document.createElement("td");
+      price.className = "aer_dmh_item_td_price";
       if(m.isFree){
-        row +=  '<td class="aer_dmh_item_td_price"> <b style="color:green">Free</b> </td>';
+        price.innerHTML = '<b style="color:green">Free</b>';
       }
       else{
-        row += '<td class="aer_dmh_item_td_price">' + m.priceString + "</td>";
+        price.textContent = String(m.priceString).replace("\u00A0"," ");
       }
+      row.appendChild(price);
+
       if(settings.show_total_cost && m.totalCost !== undefined){
-        row += '<td class="aer_dmh_item_td_totalCost"> <b>' + replace_number(m.priceString, m.totalCost) + "</b> </td>";
+        let totalCost = document.createElement("td");
+        totalCost.className = "aer_dmh_item_td_totalCost";
+
+        let b = document.createElement("b");
+        b.textContent = replace_number(String(m.priceString), m.totalCost).replace("\u00A0"," ");
+        totalCost.appendChild(b);
+
+        row.appendChild(totalCost);
       }
-      row += "</tr>"
-      tbody += row;
+      tbody.appendChild(row);
     });
-    tbody += "</tbody>";
-    table.innerHTML = tbody;
   }
 
   function replace_number(str, new_value){

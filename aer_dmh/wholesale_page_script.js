@@ -72,7 +72,7 @@
 
     debug_log("Getting localization info from __AER_DATA__...");
 
-    let data = find_keys(JSON.parse(aer_data.innerText), ["currencyProps", "shipToProps"]);
+    let data = find_keys(JSON.parse(aer_data.textContent), ["currencyProps", "shipToProps"]);
     if(data.currencyProps !== undefined &&
        data.currencyProps.selected !== undefined &&
        data.currencyProps.selected.currencyType !== undefined){
@@ -109,8 +109,17 @@
     return ret;
   }
 
-  document.addEventListener("aer_dmh_settings_changed", (e) => {
-    let changes = e.detail.changes;
+  window.addEventListener("message", (e) => {
+    if(e.source === window && e.data && e.data.type){
+      if(e.data.type === "aer_dmh_wholesale_injected")
+        on_injected(e.data.detail);
+      else if(e.data.type === "aer_dmh_settings_changed")
+        on_settings_changed(e.data.detail);
+    }
+  });
+
+  function on_settings_changed(data){
+    let changes = data.changes;
     for(let [key, {oldValue, newValue}] of Object.entries(changes)){
       settings[key] = newValue;
       debug_log("Setting '" + key + "' changed: " + oldValue + " -> " + newValue);
@@ -127,12 +136,12 @@
         update_delivery_methods();
       }
     }
-  });
+  }
 
-  document.addEventListener("aer_dmh_wholesale_injected", (e) => {
-    settings = e.detail.settings;
-    iconUrl = e.detail.iconUrl;
-    loadingIconUrl = e.detail.loadingIconUrl;
+  function on_injected(data){
+    settings = data.settings;
+    iconUrl = data.iconUrl;
+    loadingIconUrl = data.loadingIconUrl;
 
     if(typeof fetch_old === "undefined"){
       var aer_dmh_fetch_old = fetch;
@@ -160,7 +169,7 @@
       get_localization();
       set_mutation_observer();
     });
-  });
+  }
 
   function create_icon(price_container_div, index){
     if(!settings.enabled_wholesale)
@@ -295,9 +304,11 @@
           <table id="aer_dmh_wholesale_table"> \
             <tbody></tbody> \
           </table>  \
-          <img id="aer_dmh_wholesale_loading_icon" src="' + loadingIconUrl + '">\
+          <img id="aer_dmh_wholesale_loading_icon"> \
         </div> \
       ';
+
+      div.querySelector("#aer_dmh_wholesale_loading_icon").src = loadingIconUrl;
 
       clearTimeout(popup_timeout);
       div.addEventListener("mouseenter", () => {
@@ -460,6 +471,11 @@
     });
   }
 
+  function remove_children(parent){
+    while(parent.firstChild)
+      parent.removeChild(parent.lastChild);
+  }
+
   function show_delivery_methods(index){
     let div = document.getElementById("aer_dmh_wholesale_div");
     if(div){
@@ -468,19 +484,22 @@
         return;
       }
 
-      let loading_icon = document.getElementById("aer_dmh_wholesale_loading_icon");
-      if(loading_icon)
-        loading_icon.classList.remove("aer_dmh_wholesale_hidden");
+      show_loading_icon();
 
       freight_request(products[index], localization).then((resp) => {
         process_freight_resp(resp, products[index]).then((data) => {
-          if(loading_icon)
-            loading_icon.classList.add("aer_dmh_wholesale_hidden");
+          hide_loading_icon();
 
           let ship_from_p = document.getElementById("aer_dmh_wholesale_ship_from");
           if(ship_from_p){
             let ship_from_string = data.shipFrom || "?";
-            ship_from_p.innerHTML = 'Ship from: <b>' + ship_from_string + '</b>';
+
+            remove_children(ship_from_p);
+            ship_from_p.textContent = "Ship from: ";
+
+            let b = document.createElement("b");
+            b.textContent = ship_from_string;
+            ship_from_p.appendChild(b);
           }
           else{
             debug_log("No aer_dmh_wholesale_ship_from found!");
@@ -488,18 +507,34 @@
 
           make_delivery_methods_table(data.methods);
         }, () => {
-          if(loading_icon)
-            loading_icon.classList.add("aer_dmh_wholesale_hidden");
+          hide_loading_icon();
           debug_log("process_freight_resp() failed");
           make_delivery_methods_table([]);
         })
       }, () => {
-        if(loading_icon)
-          loading_icon.classList.add("aer_dmh_wholesale_hidden");
+        hide_loading_icon();
         debug_log("freight_request() failed");
         make_delivery_methods_table([]);
       });
     }
+  }
+
+  function show_loading_icon(){
+    let loading_icon = document.getElementById("aer_dmh_wholesale_loading_icon");
+    if(loading_icon)
+      loading_icon.classList.remove("aer_dmh_wholesale_hidden");
+    let table = document.getElementById("aer_dmh_wholesale_table");
+    if(table)
+      table.classList.add("aer_dmh_wholesale_hidden");
+  }
+
+  function hide_loading_icon(){
+    let loading_icon = document.getElementById("aer_dmh_wholesale_loading_icon");
+    if(loading_icon)
+      loading_icon.classList.add("aer_dmh_wholesale_hidden");
+    let table = document.getElementById("aer_dmh_wholesale_table");
+    if(table)
+      table.classList.remove("aer_dmh_wholesale_hidden");
   }
 
   function make_delivery_methods_table(methods){
@@ -509,27 +544,53 @@
       return;
     }
     if(methods.length > 0){
-      let tbody = "<tody>";
+      if(!table.tBodies[0])
+        table.createTBody();
+
+      let tbody = table.tBodies[0];
+      remove_children(tbody);
+
       methods.forEach((m) => {
-        let row = '<tr class="aer_dmh_wholesale_tr">';
-        row += '<td class="aer_dmh_wholesale_td_groupName">' + m.groupName + "</td>";
-        row += '<td class="aer_dmh_wholesale_td_service">' + m.service + "</td>";
-        //row += '<td class="aer_dmh_wholesale_td_date">' + m.dateString + "</td>";
+        let row = document.createElement("tr");
+        row.className = "aer_dmh_wholesale_tr";
+
+        let groupName = document.createElement("td");
+        groupName.className = "aer_dmh_wholesale_td_groupName";
+        groupName.textContent = String(m.groupName).replace("\u00A0"," ");
+        row.appendChild(groupName);
+
+        let service = document.createElement("td");
+        service.className = "aer_dmh_wholesale_td_service";
+        service.textContent = String(m.service).replace("\u00A0"," ");
+        row.appendChild(service);
+
+//        let date = document.createElement("td");
+//        date.className = "aer_dmh_wholesale_td_date";
+//        date.textContent = String(m.dateString).replace("\u00A0"," ");
+//        row.appendChild(date);
+
+        let price = document.createElement("td");
+        price.className = "aer_dmh_wholesale_td_price";
         if(m.isFree){
-          row +=  '<td class="aer_dmh_wholesale_td_price"> <b style="color:green">Free</b> </td>';
+          price.innerHTML = '<b style="color:green">Free</b>';
         }
         else{
-          row += '<td class="aer_dmh_wholesale_td_price">' + format_price(m.price, m.priceString) + "</td>";
+          price.textContent = format_price(m.price, String(m.priceString)).replace("\u00A0"," ");
         }
+        row.appendChild(price);
+
         if(settings.show_total_cost && m.totalCost !== undefined){
-          row += '<td class="aer_dmh_wholesale_td_totalCost"> <b>' + format_price(m.totalCost, m.priceString) + "</b> </td>";
+          let totalCost = document.createElement("td");
+          totalCost.className = "aer_dmh_wholesale_td_totalCost";
+
+          let b = document.createElement("b");
+          b.textContent = format_price(m.totalCost, String(m.priceString)).replace("\u00A0"," ");
+          totalCost.appendChild(b);
+
+          row.appendChild(totalCost);
         }
-        row += "</tr>"
-        tbody += row;
+        tbody.appendChild(row);
       });
-      tbody += "</tbody>";
-      table.innerHTML = tbody;
-      table.innerHTML = table.innerHTML.replaceAll("&nbsp;", " ");
     }
     else{
       table.innerHTML = '<div class="aer_dmh_wholesale_no_data"><b>No data!</b></div>';
@@ -568,12 +629,12 @@
 
   function update_delivery_methods(){
     let div = document.getElementById("aer_dmh_wholesale_div");
-    if(div){
-      let index = div.getAttribute("data-aer-dmh-index");
+    if(div && div.parentElement){
+      let index = div.parentElement.getAttribute("data-aer-dmh-index");
       if(index === undefined || index === null){
         debug_log("data-aer-dmh-index undefined!");
       }
-    show_delivery_methods(index);
+      show_delivery_methods(index);
     }
   }
 

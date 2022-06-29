@@ -12,22 +12,24 @@ if(!document.getElementById(script_id)){
     debug_log("Page script injected");
 
     chrome.storage.sync.get((data) => {
-      document.dispatchEvent(new CustomEvent('aer_dmh_wholesale_injected', {
+      window.postMessage({
+        type: "aer_dmh_wholesale_injected",
         detail: {
           settings: data,
           iconUrl: chrome.runtime.getURL("images/shipment-question.png"),
           loadingIconUrl: chrome.runtime.getURL("images/loading.svg"),
         }
-      }));
+      }, window.origin);
     });
 
     chrome.storage.sync.onChanged.addListener((changes, areaName) => {
-      document.dispatchEvent(new CustomEvent('aer_dmh_settings_changed', {
+      window.postMessage({
+        type: "aer_dmh_settings_changed",
         detail: {
           changes: changes,
           areaName: areaName
-        }
-      }));
+        },
+      }, window.origin);
     });
   };
 
