@@ -2,7 +2,7 @@
   "manifest_version": 2,
   "name": "AER Delivery Method Helper",
   "description": "Show all available delivery methods on AliExpress Russia website",
-  "version": "1.1",
+  "version": "1.2",
   "author": "Arseniy Virachev aka Trigger239",
   "browser_specific_settings": {
     "gecko": {
@@ -41,11 +41,31 @@
       "run_at": "document_start",
       "js": ["wholesale_inject.js"],
       "css": ["aer_dmh.css"]
+    },
+    {
+      "matches": ["*://shoppingcart.aliexpress.ru/orders.htm"],
+      "all_frames": true,
+      "run_at": "document_start",
+      "js": ["order_iframe_inject.js"]
+    },
+    {
+      "matches": ["*://www.aliexpress.com/p/error/404.html"],
+      "all_frames": true,
+      "run_at": "document_start",
+      "js": ["com_404_iframe_inject.js"]
+    },
+    {
+      "matches": ["*://login.aliexpress.ru/*"],
+      "all_frames": true,
+      "js": ["login_iframe_inject.js"]
     }
   ],
   "web_accessible_resources": [
     "item_page_script.js",
     "wholesale_page_script.js",
+    "order_iframe_script.js",
+    "login_iframe_script.js",
+    "com_404_iframe_script.js",
     "images/shipment-question.png",
     "images/loading.svg"
   ],

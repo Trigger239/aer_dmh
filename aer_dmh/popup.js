@@ -6,6 +6,7 @@ let show_total_cost_checkbox = document.getElementById("show_total_cost");
 let debug_logging_checkbox = document.getElementById("debug_logging");
 let wholesale_popup_timeout_input = document.getElementById("wholesale_popup_timeout");
 let restore_defaults_button = document.getElementById("restore_defaults");
+let request_method_select = document.getElementById("request_method");
 
 //initialize elements
 function init_from_storage(){
@@ -15,6 +16,7 @@ function init_from_storage(){
     show_total_cost.checked = data.show_total_cost;
     debug_logging_checkbox.checked = data.debug_logging;
     wholesale_popup_timeout_input.value = data.wholesale_popup_timeout;
+    request_method_select.value = data.request_method;
   });
   debug_log("Initialized from storage");
 }
@@ -26,6 +28,7 @@ enabled_wholesale_checkbox.addEventListener("change", on_checkbox_change);
 show_total_cost_checkbox.addEventListener("change", on_checkbox_change);
 debug_logging_checkbox.addEventListener("change", on_checkbox_change);
 wholesale_popup_timeout_input.addEventListener("change", on_popup_timeout_change);
+request_method_select.addEventListener("change", on_request_method_change);
 
 function on_checkbox_change(e){
   chrome.storage.sync.set(JSON.parse('{"' + e.target.id + '": ' + e.target.checked + '}'));
@@ -53,6 +56,11 @@ function on_popup_timeout_change(e){
   chrome.storage.sync.get("wholesale_popup_timeout", (data) => {
     wholesale_popup_timeout_input.value = data.wholesale_popup_timeout;
   });
+}
+
+function on_request_method_change(e){
+  let val = request_method_select.value;
+  chrome.storage.sync.set({request_method: val});
 }
 
 restore_defaults_button.addEventListener("click", function(){

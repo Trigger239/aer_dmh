@@ -17,9 +17,22 @@
   let settings;
   let iconUrl, loadingIconUrl;
   let products = [];
-  let localization = {};
+  let localization = {strings: {}};
 
   let popup_timeout;
+	
+  let request_id = 0;
+	
+	const freight_iframe_id = "aer_dmh_freight_iframe";
+  const freight_iframe = new Promise((resolve, reject) => {
+    window.addEventListener("message", (e) => {
+      if(e.source === window && e.data && e.data.type){
+        if(e.data.type === "aer_dmh_freight_iframe_loaded"){
+          resolve(document.getElementById(freight_iframe_id));
+        }
+      }
+    });
+  });
 
   function get_products_from_dom(){
     debug_log("Getting products from DOM elements...")
@@ -72,7 +85,7 @@
 
     debug_log("Getting localization info from __AER_DATA__...");
 
-    let data = find_keys(JSON.parse(aer_data.textContent), ["currencyProps", "shipToProps"]);
+    const data = find_keys(JSON.parse(aer_data.textContent), ["currencyProps", "shipToProps", "lang", "i18n"]);
     if(data.currencyProps !== undefined &&
        data.currencyProps.selected !== undefined &&
        data.currencyProps.selected.currencyType !== undefined){
@@ -95,6 +108,18 @@
         localization.cityCode = data.shipToProps.selectedCity.value;
         debug_log("cityCode found:", localization.cityCode);
       }
+    }
+    if(data.lang !== undefined){
+      localization.lang = data.lang;
+      debug_log("lang found:", localization.lang);
+    }
+    if(data.i18n !== undefined){
+      localization.strings.delivery = data.i18n.checkoutShippingMethod_delivery || "Delivery";
+      localization.strings.self_pickup = data.i18n.checkoutShippingMethod_self_pick_up || "Self pick-up";
+      localization.strings.rupost_self_pickup = data.i18n.checkoutShippingMethod_rupost_self_pick_up || "RU Post Self pick-up";
+      localization.strings.delivery = String(localization.strings.delivery).replace("\u00A0"," ");
+      localization.strings.self_pickup = String(localization.strings.self_pickup).replace("\u00A0"," ");
+      localization.strings.rupost_self_pickup = String(localization.strings.rupost_self_pickup).replace("\u00A0"," ");
     }
   }
 
@@ -135,6 +160,9 @@
       else if(key === "show_total_cost"){
         update_delivery_methods();
       }
+      else if(key === "request_method"){
+        window.location.reload();
+      }
     }
   }
 
@@ -163,12 +191,19 @@
       });
     }
 
-    document.addEventListener("DOMContentLoaded", (e) =>{
-      //__AER_DATA__ is ready here
+    if(document.readyState == "loading"){
+      document.addEventListener("DOMContentLoaded", (e) =>{
+					//__AER_DATA__ is ready here
+				get_products_from_dom();
+				get_localization();
+				set_mutation_observer();
+      });
+    }
+    else{
       get_products_from_dom();
       get_localization();
       set_mutation_observer();
-    });
+    }
   }
 
   function create_icon(price_container_div, index){
@@ -390,84 +425,38 @@
     else
       return val;
   }
-
-  function freight_request(product, localization){
-    return fetch(freight_url + "?product_id=" + product.productId,
-    {
-      headers: {"Content-type": "application/json"},
-      method: "POST",
-      body: JSON.stringify(
-      {
-        productId: Number(product.productId),
-        country: to_string_if_defined(localization.country),
-        cityCode: to_string_if_defined(localization.cityCode),
-        provinceCode: to_string_if_defined(localization.provinceCode),
-        count: 1,
-        displayMultipleFreight: true,
-        minPrice: product.price,
-        maxPrice: product.price,
-        tradeCurrency: to_string_if_defined(localization.currency),
-        ext:
-        {
-          cookieCna: getCookie("cna"),
-          hideShipFrom: "false", //yes, it should be a string!
-          p0: to_string_if_defined(product.skuId),
-          p1: to_string_if_defined(product.price),
-          p3: to_string_if_defined(localization.currency),
-          p4: "-1", //I don't know what does this mean, sometimes it is -1
-          p5: "0", //Another strange thing... Some "random" numbers appear here sometimes
-          p7: "{}"
+	
+	function query_delivery_methods(product_desc, localization){
+    return new Promise((resolve, reject) => {	
+      const channel = new MessageChannel();
+      
+      channel.port1.onmessage = (e) => {
+        channel.port1.close();
+        if(!e.data || !e.data.status){
+          console.error("No status in received message...");
+          reject({status: "BAD_MESSAGE"});
         }
-      })
-    });
-  }
-
-  function process_freight_resp(resp, product){
-    return new Promise((resolve, reject) => {
-      if(resp.ok && resp.status == 200){
-        resp.json().then((e) => {
-          if(e.methods && (e.methods instanceof Array)){
-            let price = product.price;
-            let currency = localization.currency;
-
-            debug_log("price: " + price + " currency: " + currency);
-
-            let methods = [];
-            e.methods.forEach((m) => {
-              debug_log(m.groupName + " " + m.service + " " + m.amount.formatted);
-
-              let totalCost = undefined;
-              if(price !== undefined &&
-                 currency !== undefined &&
-                 m.amount.currency !== undefined &&
-                 currency == m.amount.currency){
-                totalCost = price + m.amount.value;
-              }
-              methods.push({
-                groupName: m.groupName,
-                service: m.service,
-                price: m.amount.value,
-                priceCurrency: m.amount.currency,
-                priceString: m.amount.formatted,
-                isFree: (m.discount == 100 || m.amount.value == 0),
-                dateString: m.dateFormat,
-                totalCost: totalCost
-              });
-            });
-
-            let shipFrom;
-            if(e.from)
-              shipFrom = e.from.countryName;
-            resolve({methods: methods, shipFrom: shipFrom});
+        else if(e.data.status === "SUCCESS"){
+          resolve(e.data);
+        }
+        else{
+          if(String(e.data.status).startsWith("FAILED_THROW")){
+            console.error(e.data.status);
           }
-          else{
-            reject();
-          }
-        }, reject);
+          reject(e.data);
+        }
       }
-      else{
-        reject();
-      }
+      
+      freight_iframe.then((ifr) => {
+        ifr.contentWindow.postMessage({
+          type: "aer_dmh_freight_request",
+          product_desc: product_desc,
+          localization: localization
+        }, "*", [channel.port2]);
+      }, (e) => {
+        console.error(e);
+        reject({status: "NO_IFRAME"});
+      });
     });
   }
 
@@ -485,60 +474,83 @@
       }
 
       show_loading_icon();
+			
+			const product = products[index];
+			
+			const product_desc = {
+        productId: product.productId,
+        skuId: product.skuId,
+        count: 1,
+        price: product.price,
+        currency: localization.currency,
+      };
+      let loc = {};
+      Object.assign(loc, localization);
+      loc.priceFormatExample = product.priceString || ("0.00 " + (tradeCurrency || ""));
 
-      freight_request(products[index], localization).then((resp) => {
-        process_freight_resp(resp, products[index]).then((data) => {
-          hide_loading_icon();
-
-          let ship_from_p = document.getElementById("aer_dmh_wholesale_ship_from");
-          if(ship_from_p){
-            let ship_from_string = data.shipFrom || "?";
-
-            remove_children(ship_from_p);
-            ship_from_p.textContent = "Ship from: ";
-
-            let b = document.createElement("b");
-            b.textContent = ship_from_string;
-            ship_from_p.appendChild(b);
-          }
-          else{
-            debug_log("No aer_dmh_wholesale_ship_from found!");
-          }
-
-          make_delivery_methods_table(data.methods);
-        }, () => {
-          hide_loading_icon();
-          debug_log("process_freight_resp() failed");
-          make_delivery_methods_table([]);
-        })
-      }, () => {
+      request_id += 1;
+      let this_request_id = request_id;
+			
+      query_delivery_methods(product_desc, loc).then((data) => {
+        if(this_request_id !== request_id){ //do nothing if more requests were sent
+          debug_log("Late response with id " + this_request_id + ", current id " + request_id); 
+          return;
+        }
+          
         hide_loading_icon();
-        debug_log("freight_request() failed");
+				
+        show_ship_from(data.methods);
+        make_delivery_methods_table(data.methods);
+      }, (e) => {
+        if(this_request_id !== request_id)
+          return;
+        
+        hide_loading_icon();
         make_delivery_methods_table([]);
+        show_error(check_reason(e).status);
       });
     }
+  }  
+	
+	function show_error(status){
+    const table = document.getElementById("aer_dmh_wholesale_table");
+    if(!table)
+      return;
+    remove_children(table);
+   
+    const div = document.createElement("div");
+    div.className = "aer_dmh_wholesale_error";
+    
+    if(status === "NOT_LOGGED_IN")
+      div.textContent = "Please login and reload the page to see delivery methods!";
+    else if(status === "NO_DATA")
+      div.textContent = "No data!";
+    else
+      div.textContent = "No data! (" + String(status) + ")";
+      
+    table.appendChild(div);
   }
 
   function show_loading_icon(){
-    let loading_icon = document.getElementById("aer_dmh_wholesale_loading_icon");
+    const loading_icon = document.getElementById("aer_dmh_wholesale_loading_icon");
     if(loading_icon)
       loading_icon.classList.remove("aer_dmh_wholesale_hidden");
-    let table = document.getElementById("aer_dmh_wholesale_table");
+    const table = document.getElementById("aer_dmh_wholesale_table");
     if(table)
       table.classList.add("aer_dmh_wholesale_hidden");
   }
 
   function hide_loading_icon(){
-    let loading_icon = document.getElementById("aer_dmh_wholesale_loading_icon");
+    const loading_icon = document.getElementById("aer_dmh_wholesale_loading_icon");
     if(loading_icon)
       loading_icon.classList.add("aer_dmh_wholesale_hidden");
-    let table = document.getElementById("aer_dmh_wholesale_table");
+    const table = document.getElementById("aer_dmh_wholesale_table");
     if(table)
       table.classList.remove("aer_dmh_wholesale_hidden");
   }
 
   function make_delivery_methods_table(methods){
-    let table = document.getElementById("aer_dmh_wholesale_table");
+    const table = document.getElementById("aer_dmh_wholesale_table");
     if(!table){
       debug_log("No aer_dmh_wholesale_table found!");
       return;
@@ -547,44 +559,44 @@
       if(!table.tBodies[0])
         table.createTBody();
 
-      let tbody = table.tBodies[0];
+      const tbody = table.tBodies[0];
       remove_children(tbody);
 
       methods.forEach((m) => {
-        let row = document.createElement("tr");
+        const row = document.createElement("tr");
         row.className = "aer_dmh_wholesale_tr";
 
-        let groupName = document.createElement("td");
+        const groupName = document.createElement("td");
         groupName.className = "aer_dmh_wholesale_td_groupName";
-        groupName.textContent = String(m.groupName).replace("\u00A0"," ");
+        groupName.textContent = m.groupName;
         row.appendChild(groupName);
 
-        let service = document.createElement("td");
+        const service = document.createElement("td");
         service.className = "aer_dmh_wholesale_td_service";
-        service.textContent = String(m.service).replace("\u00A0"," ");
+        service.textContent = m.service;
         row.appendChild(service);
 
-//        let date = document.createElement("td");
-//        date.className = "aer_dmh_wholesale_td_date";
-//        date.textContent = String(m.dateString).replace("\u00A0"," ");
-//        row.appendChild(date);
-
-        let price = document.createElement("td");
+    //    const date = document.createElement("td");
+    //    date.className = "aer_dmh_wholesale_td_date";
+    //    date.textContent = m.daysFormatted;
+    //    row.appendChild(date);
+		
+        const price = document.createElement("td");
         price.className = "aer_dmh_wholesale_td_price";
         if(m.isFree){
           price.innerHTML = '<b style="color:green">Free</b>';
         }
         else{
-          price.textContent = format_price(m.price, String(m.priceString)).replace("\u00A0"," ");
+          price.textContent = m.priceFormatted;
         }
         row.appendChild(price);
 
         if(settings.show_total_cost && m.totalCost !== undefined){
-          let totalCost = document.createElement("td");
+          const totalCost = document.createElement("td");
           totalCost.className = "aer_dmh_wholesale_td_totalCost";
 
-          let b = document.createElement("b");
-          b.textContent = format_price(m.totalCost, String(m.priceString)).replace("\u00A0"," ");
+          const b = document.createElement("b");
+          b.textContent = m.totalCostFormatted;
           totalCost.appendChild(b);
 
           row.appendChild(totalCost);
@@ -593,39 +605,34 @@
       });
     }
     else{
-      table.innerHTML = '<div class="aer_dmh_wholesale_no_data"><b>No data!</b></div>';
+      show_error("NO_DATA");
     }
   }
+	
+	function show_ship_from(methods){
+		const ship_from_p = document.getElementById("aer_dmh_wholesale_ship_from");
+		if(!ship_from_p){
+			debug_log("No aer_dmh_wholesale_ship_from found!");
+			return;
+		}
+		
+		const countries = new Set();
+		for(m of methods){
+		  if(m.shipFromFullName)
+			  countries.add(m.shipFromFullName);
+		}
+		
+		let ship_from_string = "?";
+		if(countries.size > 0)
+		  ship_from_string = Array(...countries).join(", ");
 
-  function format_price(price, example){
-    let begin = -1;
-    let end = -1;
-    for(let i = 0; i < 9; i++){
-      let j = example.indexOf(String(i));
-      if(j != -1 && (j < begin || begin == -1))
-        begin = j;
-      j = example.lastIndexOf(String(i));
-      if(j != -1 && (j + 1 > end || end == -1))
-        end = j + 1;
-    }
-    if(begin == -1)
-      begin = 0;
-    if(end == -1)
-      end = example.length;
+		remove_children(ship_from_p);
+		ship_from_p.textContent = "Ship from: ";
 
-    let old_value_str = example.substr(begin, end - begin);
-
-    let sep = ".";
-    let decimal_places = 2;
-    let sep_pos = old_value_str.lastIndexOf(",");
-    if(sep_pos != -1)
-      sep = ",";
-    sep_pos = old_value_str.lastIndexOf(sep);
-    if(sep_pos != -1)
-      decimal_places = old_value_str.length - 1 - sep_pos;
-
-    return price.toFixed(decimal_places).replace(".", sep);
-  }
+		let b = document.createElement("b");
+		b.textContent = ship_from_string;
+		ship_from_p.appendChild(b);
+	}
 
   function update_delivery_methods(){
     let div = document.getElementById("aer_dmh_wholesale_div");
@@ -636,6 +643,18 @@
       }
       show_delivery_methods(index);
     }
+  }
+  
+  function check_reason(reason){
+    let msg = reason;
+    if(!reason.status){
+      console.error(reason);
+      
+      msg = {status: "FAILED_THROW"};
+      if(reason.message)
+        msg.status +=" [" + reason.message + "]";
+    }
+    return msg;
   }
 
   function debug_log(...data){

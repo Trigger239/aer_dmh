@@ -29,6 +29,20 @@
   font-size: 14px !important;
 }
 
+.aer_dmh_item_error{
+  padding: 5px 10px;
+  width: 400px;
+  font-size: 18px;
+  color:red;
+  text-align:center;
+  white-space: normal;
+}
+
+#aer_dmh_item_loading_icon{
+  margin-left:50%;
+  transform: translate(-50%, 0px);
+}
+
 .aer_dmh_wholesale_price{
   position: relative;
 }
@@ -90,13 +104,14 @@
   transform: translate(-50%, 0px);
 }
 
-.aer_dmh_wholesale_hidden{
-  display: none;
-}
-
-.aer_dmh_wholesale_no_data{
+.aer_dmh_wholesale_error{
   font-size: 14px;
   color:red;
   width: 236px;
   text-align:center;
+}
+
+.aer_dmh_item_hidden,
+.aer_dmh_wholesale_hidden{
+  display: none;
 }

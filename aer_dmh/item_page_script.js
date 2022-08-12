@@ -1,7 +1,24 @@
-(function(){
-  let MODULE_NAME = "aer_dmh/item_page_script.js";
+﻿(function(){
+  const MODULE_NAME = "aer_dmh/item_page_script.js";
+  
   let settings;
   let methods = [];
+  let localization = {strings: {}};
+  
+  let loadingIconUrl;
+  
+  let request_id = 0;
+  
+  const freight_iframe_id = "aer_dmh_freight_iframe";
+  const freight_iframe = new Promise((resolve, reject) => {
+    window.addEventListener("message", (e) => {
+      if(e.source === window && e.data && e.data.type){
+        if(e.data.type === "aer_dmh_freight_iframe_loaded"){
+          resolve(document.getElementById(freight_iframe_id));
+        }
+      }
+    });
+  });
 
   window.addEventListener("message", (e) => {
     if(e.source === window && e.data && e.data.type){
@@ -13,8 +30,8 @@
   });
 
   function on_settings_changed(data){
-    let changes = data.changes;
-    for(let [key, {oldValue, newValue}] of Object.entries(changes)){
+    const changes = data.changes;
+    for(const [key, {oldValue, newValue}] of Object.entries(changes)){
       settings[key] = newValue;
       debug_log("Setting '" + key + "' changed: " + oldValue + " -> " + newValue);
       if(key === "enabled_item"){
@@ -28,11 +45,21 @@
       else if(key === "show_total_cost"){
         show_delivery_methods(methods);
       }
+      else if(key === "request_method"){
+        window.location.reload();
+      }
     }
   }
 
   function on_injected(data){
     settings = data.settings;
+    loadingIconUrl = data.loadingIconUrl;
+    
+    const freight_iframe = document.getElementById(freight_iframe_id);
+    if(!freight_iframe){
+      debug_log("No order iframe found, can't continue!");
+      return;
+    }
 
     if(typeof fetch_old === "undefined"){
       var aer_dmh_fetch_old = fetch;
@@ -41,8 +68,8 @@
 
     fetch = function(resource, init){
       return new Promise((resolve, reject) => {
-        let req = JSON.parse(init.body);
-        let resp = aer_dmh_fetch_old(resource, init);
+        const req = JSON.parse(init.body);
+        const resp = aer_dmh_fetch_old(resource, init);
 
         if(resource.search("aer-api/v1/product/detail/freight\\?product_id=") != -1){
           resp.then((e) => {
@@ -54,22 +81,98 @@
         resolve(resp);
       });
     }
+    
+    if(document.readyState == "loading"){
+      document.addEventListener("DOMContentLoaded", (e) =>{
+        //__AER_DATA__ is ready here
+        get_localization();
+      });
+    }
+    else{
+      get_localization();
+    }
+  }
+  
+  function get_localization(){
+    const aer_data = document.getElementById("__AER_DATA__");
+    if(!aer_data){
+      debug_log("No __AER_DATA__, can't get localization info!");
+      return;
+    }
+
+    debug_log("Getting localization info from __AER_DATA__...");
+
+    const data = find_keys(JSON.parse(aer_data.textContent), ["currencyProps", "shipToProps", "lang", "i18n"]);
+    if(data.currencyProps !== undefined &&
+       data.currencyProps.selected !== undefined &&
+       data.currencyProps.selected.currencyType !== undefined){
+      localization.currency = data.currencyProps.selected.currencyType;
+      debug_log("currency found:", localization.currency);
+    }
+    if(data.shipToProps !== undefined &&
+       data.shipToProps.selectedCountry !== undefined &&
+       data.shipToProps.selectedCountry.value !== undefined){
+      localization.country = data.shipToProps.selectedCountry.value;
+      debug_log("country found:", localization.country);
+
+      if(data.shipToProps.selectedRegion !== undefined &&
+         data.shipToProps.selectedRegion.value !== undefined){
+        localization.provinceCode = data.shipToProps.selectedRegion.value;
+        debug_log("provinceCode found:", localization.provinceCode);
+      }
+      if(data.shipToProps.selectedCity !== undefined &&
+         data.shipToProps.selectedCity.value !== undefined){
+        localization.cityCode = data.shipToProps.selectedCity.value;
+        debug_log("cityCode found:", localization.cityCode);
+      }
+    }
+    if(data.lang !== undefined){
+      localization.lang = data.lang;
+      debug_log("lang found:", localization.lang);
+    }
+    if(data.i18n !== undefined){
+      localization.strings.delivery = data.i18n.checkoutShippingMethod_delivery || "Delivery";
+      localization.strings.self_pickup = data.i18n.checkoutShippingMethod_self_pick_up || "Self pick-up";
+      localization.strings.rupost_self_pickup = data.i18n.checkoutShippingMethod_rupost_self_pick_up || "RU Post Self pick-up";
+      localization.strings.delivery = String(localization.strings.delivery).replace("\u00A0"," ");
+      localization.strings.self_pickup = String(localization.strings.self_pickup).replace("\u00A0"," ");
+      localization.strings.rupost_self_pickup = String(localization.strings.rupost_self_pickup).replace("\u00A0"," ");
+    }
+  }
+
+  function find_keys(obj, keys){
+    const ret = {};
+    JSON.stringify(obj, function(key, val){
+      if(keys.indexOf(key) != -1){
+        ret[key] = val;
+      }
+      return val;
+    });
+    return ret;
   }
 
   function create_dom_elements(){
     if(!document.getElementById("aer_dmh_item_div")){
       debug_log("Creating DOM elements...");
 
-      let delivery_div = document.querySelector('div[class^="Product_Delivery__productShipping__"]');
+      const delivery_div = document.querySelector('div[class^="Product_Delivery__productShipping__"]');
       if(!delivery_div){
         return false;
       }
-      let div = document.createElement("div");
+      const div = document.createElement("div");
       div.id = "aer_dmh_item_div";
       table = document.createElement("table");
       table.id = "aer_dmh_item_table";
       table.createTBody();
+      
+      const img = document.createElement("img");
+      img.id = "aer_dmh_item_loading_icon";
+      
       div.appendChild(table);
+      div.appendChild(img);
+      
+      img.src = loadingIconUrl;
+      
       delivery_div.appendChild(div);
     }
     return true;
@@ -78,100 +181,192 @@
   function remove_dom_elements(){
     debug_log("Removing DOM elements...");
 
-    let table = document.getElementById("aer_dmh_item_table");
+    const table = document.getElementById("aer_dmh_item_table");
     if(table)
       table.remove();
-    let div = document.getElementById("aer_dmh_item_div");
+    const div = document.getElementById("aer_dmh_item_div");
     if(div)
       div.remove();
   }
 
-  function process_freight_resp(resp, req){
-    if(resp.ok && resp.status == 200){
-      resp.json().then((e) => {
-        if(e.methods && (e.methods instanceof Array)){
-          let price = req.minPrice;
-          if(price === undefined)
-            price = req.maxPrice;
-
-          let tradeCurrency = req.tradeCurrency;
-          //try to get data from __AER_DATA__
-          //useful on the first request after the page was loaded
-          if(price === undefined){
-            debug_log("No price found in request, trying __AER_DATA__...");
-            try{
-              price = __AER_DATA__.widgets[0].props.price.minActivityAmount.value;
-            } catch{};
-            if(price === undefined){
-              try{
-                price = __AER_DATA__.widgets[0].props.price.maxActivityAmount.value;
-              } catch{};
-            }
-          }
-          if(tradeCurrency === undefined){
-            debug_log("No currency found in request, trying __AER_DATA__...");
-            try{
-              tradeCurrency = __AER_DATA__.widgets[0].props.price.minActivityAmount.currency ||
-                              __AER_DATA__.widgets[0].props.price.maxActivityAmount.currency;
-            } catch{};
-          }
-
-          let count = req.count;
-          if(count === undefined){
-            debug_log("No count found in request, using 1 as default")
-            count = 1;
-          }
-
-          debug_log("price: " + price + " count: " + count + " tradeCurrency: " + tradeCurrency);
-
-          let my_methods = [];
-          e.methods.forEach((m) => {
-              debug_log(m.groupName + " " + m.service + " " + m.amount.formatted);
-
-              let totalCost = undefined;
-              if(price !== undefined &&
-                 count !== undefined &&
-                 tradeCurrency !== undefined &&
-                 m.amount.currency !== undefined &&
-                 tradeCurrency == m.amount.currency){
-                totalCost = price * count + m.amount.value;
-              }
-              my_methods.push({
-                groupName: m.groupName,
-                service: m.service,
-                price: m.amount.value,
-                priceCurrency: m.amount.currency,
-                priceString: m.amount.formatted,
-                isFree: (m.discount == 100 || m.amount.value == 0),
-                dateString: m.dateFormat,
-                totalCost: totalCost
-              });
-            });
-          methods = my_methods;
-          if(settings.enabled_item){
-            show_delivery_methods(my_methods);
-          }
+  function query_delivery_methods(product_desc, localization){
+    return new Promise((resolve, reject) => {	
+      const channel = new MessageChannel();
+      
+      channel.port1.onmessage = (e) => {
+        channel.port1.close();
+        if(!e.data || !e.data.status){
+          console.error("No status in received message...");
+          reject({status: "BAD_MESSAGE"});
+        }
+        else if(e.data.status === "SUCCESS"){
+          resolve(e.data);
         }
         else{
-          debug_log(".methods not found in response!");
+          if(String(e.data.status).startsWith("FAILED_THROW")){
+            console.error(e.data.status);
+          }
+          reject(e.data);
         }
-      },
-      () => {
-        debug_log(".json() failed on response");
+      }
+      
+      freight_iframe.then((ifr) => {
+        ifr.contentWindow.postMessage({
+          type: "aer_dmh_freight_request",
+          product_desc: product_desc,
+          localization: localization
+        }, "*", [channel.port2]);
+      }, (e) => {
+        console.error(e);
+        reject({status: "NO_IFRAME"});
       });
-    }
+    });
   }
 
-  function set_inner_HTML(el, html_str){
-    const parser = new DOMParser();
-    const parsed = parser.parseFromString(html_str, "text/html");
-    const tags = parsed.getElementsByTagName("body");
+  function process_freight_resp(resp, req){
+    request_id += 1;
+      
+    if(resp.ok && resp.status == 200){
+      let price = req.minPrice;
+      if(price === undefined)
+        price = req.maxPrice;
 
-    el.innerHTML = "";
+      let tradeCurrency = req.tradeCurrency;
+      //try to get data from __AER_DATA__
+      //useful on the first request after the page was loaded
+      const keys = find_keys(__AER_DATA__, ["minActivityAmount", "maxActivityAmount"]);
+      if(price === undefined){
+        debug_log("No price found in request, trying __AER_DATA__...");
+        try{
+          price = keys.minActivityAmount.value;
+        } catch{};
+        if(price === undefined){
+          try{
+            price = keys.maxActivityAmount.value;
+          } catch{};
+        }
+      }
+      if(tradeCurrency === undefined){
+        debug_log("No currency found in request, trying __AER_DATA__...");
+        try{
+          tradeCurrency = keys.minActivityAmount.currency ||
+                          keys.maxActivityAmount.currency;
+        } catch{};
+      }
+      if(tradeCurrency === undefined){
+        tradeCurrency = localization.currency;
+      }
 
-    for (const tag of tags) {
-      el.appendChild(tag);
+      let count = req.count;
+      if(count === undefined){
+        debug_log("No count found in request, using 1 as default")
+        count = 1;
+      }
+      
+      let skuId;
+      if(req.ext !== undefined){
+        skuId = req.ext.p0;
+        if(skuId === undefined){
+          debug_log("No SKU ID found in request, trying URL params...");
+          const params = new URLSearchParams(window.location.search);
+          if(params){
+            skuId = params.get("sku_id");
+          }
+        }
+      }
+      
+      let price_format_example = "0.00 " + (tradeCurrency || "");
+      try{
+        price_format_example = keys.minActivityAmount.formatted ||
+                               keys.maxActivityAmount.formatted;
+      } catch{};      
+      
+      debug_log("price: " + price + 
+                " count: " + count + 
+                " tradeCurrency: " + tradeCurrency + 
+                " skuId: " + skuId);
+      if(settings.enabled_item){
+        create_dom_elements();
+        show_loading_icon();
+      }
+      
+      const product_desc = {
+        productId: req.productId,
+        skuId: skuId,
+        count: count,
+        price: price,
+        currency: tradeCurrency,
+        shipFrom: req.sendGoodsCountry,
+      };
+      let loc = {};
+      Object.assign(loc, localization);
+      loc.priceFormatExample = price_format_example;
+      
+      let this_request_id = request_id;
+      
+      query_delivery_methods(product_desc, loc).then((data) => {
+        if(this_request_id !== request_id){ //do nothing if more requests were sent
+          debug_log("Late response with id " + this_request_id + ", current id " + request_id); 
+          return;
+        }
+          
+        hide_loading_icon();
+        
+        methods = data.methods;
+        if(settings.enabled_item){
+          show_delivery_methods(methods);
+        }
+      }, (e) => {
+        if(this_request_id !== request_id)
+          return;
+        
+        hide_loading_icon();
+        show_delivery_methods([]);
+        show_error(check_reason(e).status);
+      });
     }
+    else{
+      hide_loading_icon();
+      show_delivery_methods([]);
+      show_error("HTTP_" + resp.status);
+    }
+  }
+  
+  function show_error(status){
+    const table = document.getElementById("aer_dmh_item_table");
+    if(!table)
+      return;
+    remove_children(table);
+   
+    const div = document.createElement("div");
+    div.className = "aer_dmh_item_error";
+    
+    if(status === "NOT_LOGGED_IN")
+      div.textContent = "Please login and reload the page to see delivery methods!";
+    else if(status === "NO_DATA")
+      div.textContent = "No data!";
+    else
+      div.textContent = "No data! (" + String(status) + ")";
+      
+    table.appendChild(div);
+  }
+  
+  function show_loading_icon(){
+    const loading_icon = document.getElementById("aer_dmh_item_loading_icon");
+    if(loading_icon)
+      loading_icon.classList.remove("aer_dmh_item_hidden");
+    const table = document.getElementById("aer_dmh_item_table");
+    if(table)
+      table.classList.add("aer_dmh_item_hidden");
+  }
+
+  function hide_loading_icon(){
+    const loading_icon = document.getElementById("aer_dmh_item_loading_icon");
+    if(loading_icon)
+      loading_icon.classList.add("aer_dmh_item_hidden");
+    const table = document.getElementById("aer_dmh_item_table");
+    if(table)
+      table.classList.remove("aer_dmh_item_hidden");
   }
 
   function remove_children(parent){
@@ -184,87 +379,71 @@
       return;
     if(!create_dom_elements())
       return;
-    if(!(methods instanceof Array) || methods.length === 0)
-      return;
-
-    let table = document.getElementById("aer_dmh_item_table");
-    if(!table.tBodies[0])
+    
+    hide_loading_icon();
+    if(methods.length > 0){
+      const table = document.getElementById("aer_dmh_item_table");
+      remove_children(table);
       table.createTBody();
-    let tbody = table.tBodies[0];
-    remove_children(tbody);
+      const tbody = table.tBodies[0];
 
-    methods.forEach((m) => {
-      let row = document.createElement("tr");
-      row.className = "aer_dmh_item_tr";
+      methods.forEach((m) => {
+        const row = document.createElement("tr");
+        row.className = "aer_dmh_item_tr";
 
-      let groupName = document.createElement("td");
-      groupName.className = "aer_dmh_item_td_groupName";
-      groupName.textContent = String(m.groupName).replace("\u00A0"," ");
-      row.appendChild(groupName);
+        const groupName = document.createElement("td");
+        groupName.className = "aer_dmh_item_td_groupName";
+        groupName.textContent = m.groupName;
+        row.appendChild(groupName);
 
-      let service = document.createElement("td");
-      service.className = "aer_dmh_item_td_service";
-      service.textContent = String(m.service).replace("\u00A0"," ");
-      row.appendChild(service);
+        const service = document.createElement("td");
+        service.className = "aer_dmh_item_td_service";
+        service.textContent = m.service;
+        row.appendChild(service);
 
-      let date = document.createElement("td");
-      date.className = "aer_dmh_item_td_date";
-      date.textContent = String(m.dateString).replace("\u00A0"," ");
-      row.appendChild(date);
+        const date = document.createElement("td");
+        date.className = "aer_dmh_item_td_date";
+        date.textContent = m.daysFormatted;
+        row.appendChild(date);
 
-      let price = document.createElement("td");
-      price.className = "aer_dmh_item_td_price";
-      if(m.isFree){
-        price.innerHTML = '<b style="color:green">Free</b>';
-      }
-      else{
-        price.textContent = String(m.priceString).replace("\u00A0"," ");
-      }
-      row.appendChild(price);
+        const price = document.createElement("td");
+        price.className = "aer_dmh_item_td_price";
+        if(m.isFree){
+          price.innerHTML = '<b style="color:green">Free</b>';
+        }
+        else{
+          price.textContent = m.priceFormatted;
+        }
+        row.appendChild(price);
 
-      if(settings.show_total_cost && m.totalCost !== undefined){
-        let totalCost = document.createElement("td");
-        totalCost.className = "aer_dmh_item_td_totalCost";
+        if(settings.show_total_cost && m.totalCost !== undefined){
+          const totalCost = document.createElement("td");
+          totalCost.className = "aer_dmh_item_td_totalCost";
 
-        let b = document.createElement("b");
-        b.textContent = replace_number(String(m.priceString), m.totalCost).replace("\u00A0"," ");
-        totalCost.appendChild(b);
+          const b = document.createElement("b");
+          b.textContent = m.totalCostFormatted;
+          totalCost.appendChild(b);
 
-        row.appendChild(totalCost);
-      }
-      tbody.appendChild(row);
-    });
-  }
-
-  function replace_number(str, new_value){
-    let begin = -1;
-    let end = -1;
-    for(let i = 0; i < 9; i++){
-      let j = str.indexOf(String(i));
-      if(j != -1 && (j < begin || begin == -1))
-        begin = j;
-      j = str.lastIndexOf(String(i));
-      if(j != -1 && (j + 1 > end || end == -1))
-        end = j + 1;
+          row.appendChild(totalCost);
+        }
+        tbody.appendChild(row);
+      });
     }
-    if(begin == -1)
-      begin = 0;
-    if(end == -1)
-      end = str.length;
-
-    let old_value_str = str.substr(begin, end - begin);
-
-    let sep = ".";
-    let decimal_places = 2;
-    let sep_pos = old_value_str.lastIndexOf(",");
-    if(sep_pos != -1)
-      sep = ",";
-    sep_pos = old_value_str.lastIndexOf(sep);
-    if(sep_pos != -1)
-      decimal_places = old_value_str.length - 1 - sep_pos;
-
-    str = str.substr(0, begin) + new_value.toFixed(decimal_places).replace(".", sep) + str.substr(end);
-    return str;
+    else{
+      show_error("NO_DATA");
+    }
+  }
+  
+  function check_reason(reason){
+    let msg = reason;
+    if(!reason.status){
+      console.error(reason);
+      
+      msg = {status: "FAILED_THROW"};
+      if(reason.message)
+        msg.status +=" [" + reason.message + "]";
+    }
+    return msg;
   }
 
   function debug_log(...data){

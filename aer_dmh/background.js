@@ -6,6 +6,7 @@ let default_settings = {
   show_total_cost: true,
   wholesale_popup_timeout: 300,
   debug_logging: false,
+  request_method: "com_404",
 };
 
 function restore_default_settings(cb){

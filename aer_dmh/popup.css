@@ -20,3 +20,14 @@ input[type=number]{
   margin-left: 5px;
   width: 50px;
 }
+select{
+  width: 100%;
+}
+.select{
+  margin: 0px 5px;
+  display: inline-block;
+  width: calc(100% - 10px); 
+}
+.select_label{
+  margin-bottom: 5px;
+}
