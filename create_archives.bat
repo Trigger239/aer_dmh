@@ -11,6 +11,8 @@ del /S /Q misc\tmp\aer_dmh\manifest_ff.json
 %WINRAR% A aer_dmh.zip -ep1 -r misc\tmp\aer_dmh
 
 copy aer_dmh\manifest_ff.json misc\tmp\aer_dmh\manifest.json
+del /S /Q misc\tmp\aer_dmh\_locales
+rmdir /S /Q misc\tmp\aer_dmh\_locales
 %WINRAR% A aer_dmh_ff.zip -ep1 -r misc\tmp\aer_dmh\*
 
 del /S /Q misc\tmp

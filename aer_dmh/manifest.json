@@ -1,7 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "AER Delivery Method Helper",
-  "description": "Show all available delivery methods on AliExpress Russia website",
+  "name": "__MSG_appName__",
+  "description": "__MSG_appDesc__",
+  "default_locale": "ru",
   "version": "1.2",
   "author": "Arseniy Virachev aka Trigger239",
   "action": {
@@ -15,7 +16,6 @@
     }
   },
   "permissions": [
-    "activeTab",
     "storage"
   ],
   "background": {
