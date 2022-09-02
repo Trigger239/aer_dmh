@@ -1,0 +1,22 @@
+The extension allows you to see a list of all shipping methods on AliExpress.ru without adding the product to the cart and without starting the checkout. You can view shipping methods and costs right on the search result page, with no need to go to the product page.
+
+For some time now, not all delivery methods have been displayed on the AliExpress.ru website (in the PC version), but only the cheapest ones. In addition, the names of these methods have disappeared. Now all delivery information can be seen only at the checkout stage. Previously, it was possible to go to the AliExpress.com global site and see this information there, but now it is difficult to do this due to automatic redirection back to the site in the RU-zone.
+
+The extension currently has the following features:
+• Display all available shipping methods and their cost on the product page (https://aliexpress.ru/item*);
+• Display the same information on the search page (https://aliexpress.ru/wholesale*) as a pop-up window;
+• Calculate and display the total cost of the goods and delivery.
+
+Click on the extension icon to open the settings window. There are the following options:
+• "Show on Item page" - determines whether to display shipping methods on product pages;
+• "Show on Search page" - determines whether to display shipping methods on the search page;
+• "Popup timeout (ms)" - time in milliseconds after which the window with delivery methods on the search page will close after the mouse cursor leaves it (from 100 to 5000 ms);
+• "Show total cost (product + delivery)" - determines whether to display the total cost;
+• "Request method" - selection of a method for obtaining delivery information. Two methods are currently available:
+    • "aliexpress.com" - uses a request to the global Aliexpress API (not the Russian version). The method is reliable and works fast, but allows you to see only delivery methods from the "Delivery" group ("Pickup points" are not displayed).
+    • "Order page" - method based on checkout API. It may be noticeably slower than the previous one, but displays shipping methods from all groups. This method requires you to be logged into your Aliexpress account!
+If you change the method for obtaining information, all open product and search pages will be automatically reloaded.
+• "Enable debug logging" - determines whether to output debug information to the console (which can be opened by pressing F12);
+• "Restore defaults" - restore default settings.
+
+A more detailed description (in Russian) is available here: https://github.com/Trigger239/aer_dmh. There is also the source code of the extension there.

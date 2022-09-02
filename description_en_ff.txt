@@ -1,0 +1,28 @@
+The extension allows you to see a list of all shipping methods on AliExpress.ru without adding the product to the cart and without starting the checkout. You can view shipping methods and costs right on the search result page, with no need to go to the product page.
+
+For some time now, not all delivery methods have been displayed on the AliExpress.ru website (in the PC version), but only the cheapest ones. In addition, the names of these methods have disappeared. Now all delivery information can be seen only at the checkout stage. Previously, it was possible to go to the AliExpress.com global site and see this information there, but now it is difficult to do this due to automatic redirection back to the site in the RU-zone.
+
+The extension currently has the following features:
+<ul>
+<li>Display all available shipping methods and their cost on the product page (<code>https://aliexpress.ru/item*</code>);</li>
+<li>Display the same information on the search page (<code>https://aliexpress.ru/wholesale*</code>) as a pop-up window;</li>
+<li>Calculate and display the total cost of the goods and delivery.</li>
+</ul>
+
+Click on the extension icon to open the settings window. There are the following options:
+<ul>
+<li>"Show on Item page" - determines whether to display shipping methods on product pages;</li>
+<li>"Show on Search page" - determines whether to display shipping methods on the search page;</li>
+<li>"Popup timeout (ms)" - time in milliseconds after which the window with delivery methods on the search page will close after the mouse cursor leaves it (from 100 to 5000 ms);</li>
+<li>"Show total cost (product + delivery)" - determines whether to display the total cost;</li>
+<li> "Request method" - selection of a method for obtaining delivery information. Two methods are currently available:
+<ul>
+<li>"aliexpress.com" - uses a request to the global Aliexpress API (not the Russian version). The method is reliable and works fast, but allows you to see only delivery methods from the "Delivery" group ("Pickup points" are not displayed).</li>
+<li>"Order page" - method based on checkout API. It may be noticeably slower than the previous one, but displays shipping methods from all groups. <b>This method requires you to be logged into your Aliexpress account!</b></li>
+</ul>
+<i>If you change the method for obtaining information, all open product and search pages will be automatically reloaded.</i></li>
+<li>"Enable debug logging" - determines whether to output debug information to the console (which can be opened by pressing F12);</li>
+<li>"Restore defaults" - restore default settings.</li>
+</ul>
+
+A more detailed description (in Russian) is available <a href="https://github.com/Trigger239/aer_dmh">here</a>. There is also the source code of the extension there.
