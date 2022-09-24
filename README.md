@@ -24,9 +24,9 @@ AER_DMH - это расширение для браузера Chrome, Firefox и
 
 ## Установка в Chrome
 
-Установка производится из каталога расшрений Chrome: https://chrome.google.com/webstore/detail/cfhdjpknmhecpackdojlbmddclcbeidi
+Установка производится из каталога расширений Chrome: https://chrome.google.com/webstore/detail/cfhdjpknmhecpackdojlbmddclcbeidi
 
-Возможен альтернативный вариант установки (может быть полезен сразу после выхода новой версии расшрения, когда оно ещё не прошло проверку в Chrome Web Store):
+Возможен альтернативный вариант установки (может быть полезен сразу после выхода новой версии расширения, когда оно ещё не прошло проверку в Chrome Web Store):
 1. Скачайте архив `aer_dmh.zip` из раздела ["Releases"](https://github.com/Trigger239/aer_dmh/releases).
 2. Распакуйте архив куда-нибудь на вашем компьютере.
 3. Перейдите на страницу управления расширениями Chrome (`chrome://extensions`).
